@@ -17,28 +17,10 @@ class CodeParser (object):
         self.result_list = []
 
     def parse(self, filename):
-        self.result_list = []
-        patterns = []
-        patterns.append( r"'([^'\\]*(?:\\.[^'\\]*)*)'")
-        #patterns.append( r'"([^"\\]*(?:\\.[^"\\]*)*)"')
-        #patterns.append(r'"""([^"\\]*(?:\\.[^"\\]*)*)"""')
-        #patterns.append(r"'([^\"]*)'")
-        #patterns.append(r'"""(.*)"""')
-
-        f = open(filename)
-        text = f.read()
-        for pattern in patterns:
-            self.__find_quotes(pattern, text)
-        f.close()
         return self.result_list
 
     def __find_quotes(self, pattern, text):
-        pattern = pattern
-        m = re.findall(pattern, text, re.DOTALL | re.VERBOSE)
-        for match in m:
-            if not match == '':
-                self.result_list.append(match)    
-
+        pass
 codeparser = CodeParser()
 
 def recursive_file_gen(mydir):
