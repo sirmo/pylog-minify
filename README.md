@@ -26,4 +26,4 @@ The example above has the `-f 'log.'`. This optmizes the text block search to py
 
 Further Work:
 
-I think it would be more interesting to implement this dynamicaly, by writting a replacement for the python's loggin module. Far bigger gains in terms of space requirements could be accomplished in this fashion. 
+I think it would be more interesting to implement this dynamicaly, by writting a replacement for the python's logging module. Far bigger gains in terms of space requirements could be accomplished in this fashion. 
