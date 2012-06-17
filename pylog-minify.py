@@ -12,6 +12,25 @@ import os
 import re
 import pdb
 
+# taken from http://stackoverflow.com/a/1181924
+def base36encode(number):
+    if not isinstance(number, (int, long)):
+        raise TypeError('number must be an integer')
+    if number < 0:
+        raise ValueError('number must be positive')
+
+    alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    base36 = ''
+    while number:
+        number, i = divmod(number, 36)
+        base36 = alphabet[i] + base36
+
+    return base36 or alphabet[0]
+
+def base36decode(number):
+    return int(number,36)
+
 class ParseState(object):
 
     def __init__(self, filter):
@@ -35,7 +54,6 @@ class ParseState(object):
         self.filter_buffer = ''
         for each in self.filter:
             self.filter_buffer += ' '
-        #print self.filter_buffer
 
     def __prevent(self):
         self.accept_sq = False
@@ -171,7 +189,26 @@ def recursive_file_gen(mydir):
            if file.endswith('.py'):
                yield os.path.join(root, file)
 
+def build_index(result_list):
+    if_bigger = 4
+    index_dict = {}
+    i = 0
+    for each in result_list:
+        if len(each) > if_bigger:
+            b36 = base36encode(i)
+            index_dict[b36] = each
+            i += 1
+
+    print_index(index_dict)
+    return index_dict
+
+def print_index(index_dict):
+    print "*** Index of log descriptions to minify"
+    for key, value in index_dict.items():
+        print '\t%s - "%s"' % (key, value)
+
 def analyze_code(options):
+    result_list = []
     files = recursive_file_gen(options.codebase)
     codeparser = CodeParser(options)
     for each in files:
@@ -179,8 +216,11 @@ def analyze_code(options):
         result = codeparser.parse(each)
         for text in result:
             if not text == None:
-                pass
-                print '\t"%s"' % text
+                split_up = text.split('%s')
+                print '\t%s' % split_up
+                result_list += split_up
+
+    return result_list
 def main():
 
     usage = "usage: %prog -c <code base> <input log files..>\n\n"  
@@ -202,7 +242,8 @@ def main():
     if options.verbose:
         print "reading %s..." % options.filename
     
-    analyze_code(options)
+    result = analyze_code(options)
 
+    build_index(result)
 if __name__ == '__main__':
     main()
