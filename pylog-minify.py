@@ -14,7 +14,8 @@ import pdb
 
 class ParseState(object):
 
-    def __init__(self):
+    def __init__(self, filter):
+        self.filter = filter
         self.clear()
 
     def clear(self):
@@ -27,6 +28,14 @@ class ParseState(object):
         self.accept_buffer = False
         self.buffer = ''
         self.is_comment = False
+        self.to_filter = True
+        self.__init_filter_buffer() 
+
+    def __init_filter_buffer(self):
+        self.filter_buffer = ''
+        for each in self.filter:
+            self.filter_buffer += ' '
+        #print self.filter_buffer
 
     def __prevent(self):
         self.accept_sq = False
@@ -55,10 +64,23 @@ class ParseState(object):
         self.previous = c
         return to_ret
 
+
+    def should_be_filtered(self):
+        return self.to_filter
+
+    def __feed_filter(self, c):
+        new_filter_buffer = self.filter_buffer[1:len(self.filter)] # replace first letter
+        self.filter_buffer = new_filter_buffer + c
+        if self.filter_buffer == self.filter:
+            self.to_filter = False
+        #print 'buffer %s %s' % (len(self.filter), self.filter_buffer)
+
     def feed(self, c):
         if self.accept_buffer:
             self.buffer += c
             #print 'added: %s' % c
+        else:
+            self.__feed_filter(c)
 
     def __repr__(self):
         to_ret = """ accept_sq: %s,
@@ -76,9 +98,10 @@ class ParseState(object):
 
 class CodeParser (object):
 
-    def __init__(self):
+    def __init__(self, options):
         self.result_list = []
-        self.state = ParseState()
+        
+        self.state = ParseState(options.filter)
         self.state.clear()
         
     def parse(self, filename):
@@ -91,7 +114,7 @@ class CodeParser (object):
             self.__parse(c)
 
         f.close()
-        print self.state
+        #print self.state
         self.state.clear()
         return self.result_list
 
@@ -120,7 +143,8 @@ class CodeParser (object):
                     self.state.accept_buffer = True
                     c = ''
                 else:
-                    self.result_list.append(self.state.buffer)
+                    if not self.state.should_be_filtered():
+                        self.result_list.append(self.state.buffer)
                     self.state.clear()
 
         if self.state.accept_dq:
@@ -132,14 +156,14 @@ class CodeParser (object):
                     self.state.accept_buffer = True
                     c = ''
                 else:
-                    self.result_list.append(self.state.buffer)
+                    if not self.state.should_be_filtered():
+                        self.result_list.append(self.state.buffer)
                     self.state.clear()
 
         self.state.feed(c)
 
     def __find_quotes(self, pattern, text):
         pass
-codeparser = CodeParser()
 
 def recursive_file_gen(mydir):
    for root, dirs, files in os.walk(mydir):
@@ -147,15 +171,16 @@ def recursive_file_gen(mydir):
            if file.endswith('.py'):
                yield os.path.join(root, file)
 
-def analyze_code(base_path):
-    files = recursive_file_gen(base_path)
+def analyze_code(options):
+    files = recursive_file_gen(options.codebase)
+    codeparser = CodeParser(options)
     for each in files:
-        print '>>analyzing %s' % each
+        print 'analyzing %s' % each
         result = codeparser.parse(each)
         for text in result:
             if not text == None:
                 pass
-                print text
+                print '\t"%s"' % text
 def main():
 
     usage = "usage: %prog -c <code base> <input log files..>\n\n"  
@@ -163,6 +188,8 @@ def main():
     parser = optparse.OptionParser(usage)
     parser.add_option("-c", "--codebase", dest="codebase",
                       help="project location of the python code to be analyzed")
+    parser.add_option ("-f", "--filter", dest="filter",
+                      help="filter only string formatting with following filter keyword")
     parser.add_option("-v", "--verbose",
                  action="store_true", dest="verbose")
     parser.add_option("-q", "--quiet",
@@ -175,7 +202,7 @@ def main():
     if options.verbose:
         print "reading %s..." % options.filename
     
-    analyze_code(options.codebase)
+    analyze_code(options)
 
 if __name__ == '__main__':
     main()
