@@ -33,3 +33,4 @@ pip-log.txt
 include
 lib
 .Python
+tmp

@@ -10,14 +10,115 @@ Author: Mirsad Dedovic
 import optparse
 import os
 import re
+import pdb
+
+class ParseState(object):
+
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self.accept_sq = True
+        self.sq_started = False
+        self.accept_dq = True
+        self.dq_started = False
+        self.current = ''
+        self.previous = ''
+        self.accept_buffer = False
+        self.buffer = ''
+
+    def __prevent(self):
+        self.accept_sq = False
+        self.accept_dq = False
+
+    def toggle_sq(self):
+        self.current = "'"
+        self.__prevent()
+        self.accept_sq = True
+
+    def toggle_dq(self):
+        self.current = '"'
+        self.__prevent()
+        self.accept_dq = True
+
+
+    def is_escaped(self, c):
+        if self.current == '':
+            return False
+        to_ret = False
+        if self.current == c:
+            if self.previous == '\\':
+                to_ret = True
+        self.previous = c
+        return to_ret
+
+    def feed(self, c):
+        if self.accept_buffer:
+            self.buffer += c
+            #print 'added: %s' % c
+
+    def __repr__(self):
+        to_ret = """ accept_sq: %s,
+                     sq_started: %s,
+                     current: %s,
+                     previous: %s, 
+                     accept_buffer: %s,
+                     buffer_len: %s """ % (self.accept_sq,
+                                          self.sq_started,
+                                          self.current,
+                                          self.previous,
+                                          self.accept_buffer,
+                                          len(self.buffer))
+        return to_ret
 
 class CodeParser (object):
 
     def __init__(self):
         self.result_list = []
-
+        self.state = ParseState()
+        
     def parse(self, filename):
+        self.buffer = ''
+        f = open(filename)
+        while True:
+            c = f.read(1)  #this may have performance implications
+            if not c:
+                break #eof
+            self.__parse(c)
+
+        f.close()
+        print self.state
         return self.result_list
+
+    def __parse(self, c):
+        #pdb.set_trace()
+        if self.state.accept_sq:
+            is_escaped = self.state.is_escaped(c)
+            quote_style = "'"
+            if c == quote_style and not is_escaped:
+                if not self.state.sq_started:
+                    self.state.sq_started = True
+                    self.state.current = quote_style
+                    self.state.accept_buffer = True
+                    c = ''
+                else:
+                    self.result_list.append(self.state.buffer)
+                    self.state.clear()
+
+        if self.state.accept_dq:
+            is_escaped = self.state.is_escaped(c)
+            quote_style = '"'
+            if c == quote_style and not is_escaped:
+                if not self.state.dq_started:
+                    self.state.dq_started = True
+                    self.state.current = quote_style
+                    self.state.accept_buffer = True
+                    c = ''
+                else:
+                    self.result_list.append(self.state.buffer)
+                    self.state.clear()
+
+        self.state.feed(c)
 
     def __find_quotes(self, pattern, text):
         pass
@@ -35,6 +136,7 @@ def analyze_code(base_path):
         result = codeparser.parse(each)
         for text in result:
             if not text == None:
+                pass
                 print text
 def main():
 
