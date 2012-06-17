@@ -8,19 +8,59 @@ Author: Mirsad Dedovic
 """
 
 import optparse
+import os
+import re
 
+class CodeParser (object):
 
+    def __init__(self):
+        self.result_list = []
 
+    def parse(self, filename):
+        self.result_list = []
+        patterns = []
+        patterns.append( r"'([^'\\]*(?:\\.[^'\\]*)*)'")
+        #patterns.append( r'"([^"\\]*(?:\\.[^"\\]*)*)"')
+        #patterns.append(r'"""([^"\\]*(?:\\.[^"\\]*)*)"""')
+        #patterns.append(r"'([^\"]*)'")
+        #patterns.append(r'"""(.*)"""')
 
+        f = open(filename)
+        text = f.read()
+        for pattern in patterns:
+            self.__find_quotes(pattern, text)
+        f.close()
+        return self.result_list
+
+    def __find_quotes(self, pattern, text):
+        pattern = pattern
+        m = re.findall(pattern, text, re.DOTALL | re.VERBOSE)
+        for match in m:
+            if not match == '':
+                self.result_list.append(match)    
+
+codeparser = CodeParser()
+
+def recursive_file_gen(mydir):
+   for root, dirs, files in os.walk(mydir):
+       for file in files:
+           if file.endswith('.py'):
+               yield os.path.join(root, file)
+
+def analyze_code(base_path):
+    files = recursive_file_gen(base_path)
+    for each in files:
+        result = codeparser.parse(each)
+        for text in result:
+            if not text == None:
+                print text
 def main():
 
-    usage = "usage: %prog -c <code base> -i <input log file>\n\n"  
+    usage = "usage: %prog -c <code base> <input log files..>\n\n"  
     usage += "example:\n       %prog -c ~/development/project1/ project1.log"
     parser = optparse.OptionParser(usage)
     parser.add_option("-c", "--codebase", dest="codebase",
                       help="project location of the python code to be analyzed")
-    parser.add_option("-i", "--inputlog", dest="inputlog",
-                      help="input log to be compressed") 
     parser.add_option("-v", "--verbose",
                  action="store_true", dest="verbose")
     parser.add_option("-q", "--quiet",
@@ -28,12 +68,12 @@ def main():
 
 
     (options, args) = parser.parse_args()
-    print options
-    if len(args) != 2:
+    if len(args) < 1:
         parser.error("incorrect number of arguments")
     if options.verbose:
         print "reading %s..." % options.filename
-
+    
+    analyze_code(options.codebase)
 
 if __name__ == '__main__':
     main()
