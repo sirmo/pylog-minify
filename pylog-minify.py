@@ -26,6 +26,7 @@ class ParseState(object):
         self.previous = ''
         self.accept_buffer = False
         self.buffer = ''
+        self.is_comment = False
 
     def __prevent(self):
         self.accept_sq = False
@@ -35,11 +36,13 @@ class ParseState(object):
         self.current = "'"
         self.__prevent()
         self.accept_sq = True
+        self.sq_started = True
 
     def toggle_dq(self):
         self.current = '"'
         self.__prevent()
         self.accept_dq = True
+        self.dq_started = True
 
 
     def is_escaped(self, c):
@@ -76,9 +79,10 @@ class CodeParser (object):
     def __init__(self):
         self.result_list = []
         self.state = ParseState()
+        self.state.clear()
         
     def parse(self, filename):
-        self.buffer = ''
+        self.result_list = []
         f = open(filename)
         while True:
             c = f.read(1)  #this may have performance implications
@@ -88,17 +92,31 @@ class CodeParser (object):
 
         f.close()
         print self.state
+        self.state.clear()
         return self.result_list
 
     def __parse(self, c):
         #pdb.set_trace()
+        
+        # ignore comments
+
+        if self.state.is_comment:
+            if c == '\n':
+                self.state.clear()
+                return None
+
+        if self.state.accept_sq:
+            if self.state.accept_dq:
+                if c == '#':
+                    self.state.is_comment = True
+                    return None
+
         if self.state.accept_sq:
             is_escaped = self.state.is_escaped(c)
             quote_style = "'"
             if c == quote_style and not is_escaped:
                 if not self.state.sq_started:
-                    self.state.sq_started = True
-                    self.state.current = quote_style
+                    self.state.toggle_sq()
                     self.state.accept_buffer = True
                     c = ''
                 else:
@@ -110,8 +128,7 @@ class CodeParser (object):
             quote_style = '"'
             if c == quote_style and not is_escaped:
                 if not self.state.dq_started:
-                    self.state.dq_started = True
-                    self.state.current = quote_style
+                    self.state.toggle_dq()
                     self.state.accept_buffer = True
                     c = ''
                 else:
@@ -133,6 +150,7 @@ def recursive_file_gen(mydir):
 def analyze_code(base_path):
     files = recursive_file_gen(base_path)
     for each in files:
+        print '>>analyzing %s' % each
         result = codeparser.parse(each)
         for text in result:
             if not text == None:
