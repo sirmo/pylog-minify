@@ -28,6 +28,7 @@ pip-log.txt
 
 #vi swp
 *.swp
+*.swo
 
 #VirtualEnv
 include
