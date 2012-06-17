@@ -84,6 +84,8 @@ class ParseState(object):
 
 
     def should_be_filtered(self):
+        if self.filter == '':
+            return False
         return self.to_filter
 
     def __feed_filter(self, c):
@@ -193,6 +195,8 @@ def build_index(result_list):
     if_bigger = 4
     index_dict = {}
     i = 0
+    result_list.sort(key=len,reverse=True)
+    #print result_list
     for each in result_list:
         if len(each) > if_bigger:
             b62 = base62encode(i)
@@ -217,11 +221,41 @@ def analyze_code(options):
         result = codeparser.parse(each)
         for text in result:
             if not text == None:
+                # TODO maybe add multiline support eventually
+                #      keeping it simple for the POC
+                text = text.replace('\n', '%s')   # hack
+                text = text.replace('%r', '%s')
+                text = text.replace('\\n', '%s')
+                text = text.replace('\\t', '%s')
+                text = text.replace('\\r', '%s')
                 split_up = text.split('%s')
+                
                 print '\t%s' % split_up
                 result_list += split_up
-
     return result_list
+
+def sorted_index_dict(index_dict):
+    pass
+
+def compress(index_dict, line):
+    new_line = line
+    for key, value in index_dict.items():
+        new_line = new_line.replace(value, '#' + key)
+    return new_line
+
+def process_file(options, args, index_dict):
+    for each_in_file in args:
+        in_file = open(each_in_file)
+        in_line = in_file.readline()
+        out_file = open(each_in_file + '.plm', 'w')
+        while in_line:
+            out_line = compress(index_dict, in_line)
+            out_file.write(out_line)
+            in_line = in_file.readline()
+        in_file.close()
+        out_file.close()
+
+
 def main():
 
     usage = "usage: %prog -c <code base> <input log files..>\n\n"  
@@ -231,6 +265,8 @@ def main():
                       help="project location of the python code to be analyzed")
     parser.add_option ("-f", "--filter", dest="filter",
                       help="filter only string formatting with following filter keyword")
+    parser.add_option ("-d", "--dryrun",
+                 action="store_true", dest="dryrun")
     parser.add_option("-v", "--verbose",
                  action="store_true", dest="verbose")
     parser.add_option("-q", "--quiet",
@@ -245,6 +281,8 @@ def main():
     
     result = analyze_code(options)
 
-    build_index(result)
+    index_dict = build_index(result)
+    if not options.dryrun:
+        process_file(options, args, index_dict)
 if __name__ == '__main__':
     main()

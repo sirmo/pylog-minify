@@ -34,3 +34,8 @@ include
 lib
 .Python
 tmp
+*.plm
+
+#pypy
+lib_pypy
+lib-python
