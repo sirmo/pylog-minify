@@ -12,24 +12,24 @@ import os
 import re
 import pdb
 
-# taken from http://stackoverflow.com/a/1181924
-def base36encode(number):
+# idea taken from http://stackoverflow.com/a/1181924
+def base62encode(number):
     if not isinstance(number, (int, long)):
         raise TypeError('number must be an integer')
     if number < 0:
         raise ValueError('number must be positive')
 
-    alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
-    base36 = ''
+    base62 = ''
     while number:
-        number, i = divmod(number, 36)
-        base36 = alphabet[i] + base36
+        number, i = divmod(number, 62)
+        base62 = alphabet[i] + base62
 
-    return base36 or alphabet[0]
+    return base62 or alphabet[0]
 
-def base36decode(number):
-    return int(number,36)
+def base62decode(number):
+    return int(number,62)
 
 class ParseState(object):
 
@@ -195,11 +195,12 @@ def build_index(result_list):
     i = 0
     for each in result_list:
         if len(each) > if_bigger:
-            b36 = base36encode(i)
-            index_dict[b36] = each
+            b62 = base62encode(i)
+            index_dict[b62] = each
             i += 1
 
     print_index(index_dict)
+    print "entries indexed: %s" % i
     return index_dict
 
 def print_index(index_dict):
